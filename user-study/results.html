@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en" data-palette="#2a78d6,#eb6834,#1baf7a,#eda100,#e87ba4,#008300">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>User Study Results &middot; Gen-RSI</title>
+<style>
+.viz-root{
+  color-scheme: light;
+  --surface-1:#fcfcfb; --page:#f9f9f7;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])) .viz-root{
+    color-scheme: dark;
+    --surface-1:#1a1a19; --page:#0d0d0d;
+    --text-primary:#fff; --text-secondary:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,.10);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+  }
+}
+:root[data-theme="dark"] .viz-root{
+  color-scheme: dark;
+  --surface-1:#1a1a19; --page:#0d0d0d;
+  --text-primary:#fff; --text-secondary:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,.10);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--text-primary);
+  font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:19px;margin:0 0 4px;letter-spacing:-.01em}
+.lede{margin:0;color:var(--text-secondary);font-size:13.5px;max-width:82ch}
+a{color:inherit}
+
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;
+  padding:18px 18px 10px;margin-top:20px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:0 0 6px;
+  font-size:13px;color:var(--text-secondary)}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{width:13px;height:13px;border-radius:3px;display:inline-block}
+.legend .nodata{opacity:.45}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.grid line{stroke:var(--grid);stroke-width:1}
+.axis line{stroke:var(--baseline);stroke-width:1}
+.tick{fill:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.grouplab{fill:var(--text-secondary);font-size:12.5px}
+.vlab{fill:var(--text-secondary);font-size:11.5px;font-variant-numeric:tabular-nums}
+.ylab{fill:var(--text-secondary);font-size:12.5px}
+.bar{cursor:default}
+.bar:hover{filter:brightness(1.08)}
+
+.tools{display:flex;gap:10px;align-items:center;margin-top:14px;font-size:13px;
+  color:var(--text-secondary);flex-wrap:wrap}
+.btn{border:1px solid var(--border);background:var(--surface-1);color:var(--text-primary);
+  border-radius:7px;padding:6px 12px;font-size:13px;cursor:pointer}
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:6px}
+th,td{border-bottom:1px solid var(--grid);padding:7px 9px;text-align:right;
+  font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left;font-variant-numeric:normal}
+thead th{color:var(--text-secondary);font-weight:600}
+td.nd{color:var(--muted);font-variant-numeric:normal}
+.tip{position:fixed;pointer-events:none;background:var(--surface-1);color:var(--text-primary);
+  border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12.5px;
+  box-shadow:0 8px 24px -12px rgba(0,0,0,.45);opacity:0;transition:opacity .12s}
+.pending{margin-top:18px;padding:34px 22px;text-align:center;border:1px dashed var(--baseline);
+  border-radius:12px;background:var(--surface-1);color:var(--text-secondary);font-size:14px}
+.pending b{color:var(--text-primary)}
+.cap{margin:12px 2px 0;font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body class="viz-root">
+<div class="wrap">
+  <h1>User study &mdash; per-criterion ratings</h1>
+  <p class="lede">Every method is rated on the five dimensions the physics audit scores.
+     Bars are means over the rated clips; the axis states which scale produced them.
+     <a href="./">Back to the rating interface</a>.</p>
+
+  <div id="app"></div>
+  <div class="tip" id="tip"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const SLOT = ['--s1','--s2','--s3','--s4','--s5','--s6'];
+
+function css(v){ return getComputedStyle(document.body).getPropertyValue(v).trim(); }
+
+function render(d){
+  const app = $('#app');
+  const withData = d.methods.filter(m => m.data);
+  if (!withData.length){
+    app.innerHTML = '<div class="pending"><b>No ratings yet.</b><br>' +
+      'This chart draws from <code>ratings.json</code>. Produce it with ' +
+      '<code>aggregate_ratings.py --vlm &lt;dir&gt;</code> for audit scores, or ' +
+      '<code>--human &lt;export.json&gt;</code> for the collected user study.</div>';
+    return;
+  }
+
+  const W = 1140, H = 430, PAD = {t: 14, r: 16, b: 74, l: 62};
+  const iw = W - PAD.l - PAD.r, ih = H - PAD.t - PAD.b;
+  const max = d.scale[1];
+  const ticks = 5;
+  // Bars sit in per-criterion groups; the 2px gap between adjacent bars is the
+  // separator the spec asks for, rather than a stroke drawn around each mark.
+  const GAP = 2;
+  const gw = iw / d.criteria.length;
+  const inner = gw * 0.80;
+  const bw = (inner - GAP * (withData.length - 1)) / withData.length;
+  const y = v => PAD.t + ih - (v / max) * ih;
+
+  // Direct-label selectively: our arm and the strongest baseline, never every bar.
+  const best = {};
+  for (const c of d.criteria){
+    const vals = withData.map(m => [m.id, d.values[m.id]?.[c.id]]).filter(r => r[1] != null);
+    const ours = 'genrsi';
+    const others = vals.filter(r => r[0] !== ours).sort((a,b) => b[1]-a[1]);
+    best[c.id] = new Set([ours, others.length ? others[0][0] : null].filter(Boolean));
+  }
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Per-criterion ratings by method">`;
+  svg += `<g class="grid">`;
+  for (let i = 0; i <= ticks; i++){
+    const v = max * i / ticks, yy = y(v);
+    svg += `<line x1="${PAD.l}" x2="${W-PAD.r}" y1="${yy}" y2="${yy}"></line>`;
+    svg += `<text class="tick" x="${PAD.l-10}" y="${yy+4}" text-anchor="end">${(+v.toFixed(2))}</text>`;
+  }
+  svg += `</g>`;
+  svg += `<g class="axis"><line x1="${PAD.l}" x2="${W-PAD.r}" y1="${y(0)}" y2="${y(0)}"></line></g>`;
+  svg += `<text class="ylab" transform="translate(16,${PAD.t+ih/2}) rotate(-90)" text-anchor="middle">${d.axisLabel}</text>`;
+
+  d.criteria.forEach((c, gi) => {
+    const gx = PAD.l + gi * gw + (gw - inner) / 2;
+    withData.forEach((m, mi) => {
+      const v = d.values[m.id]?.[c.id];
+      if (v == null) return;
+      const x = gx + mi * (bw + GAP);
+      const h = Math.max(1, y(0) - y(v));
+      svg += `<rect class="bar" x="${x.toFixed(1)}" y="${y(v).toFixed(1)}" width="${bw.toFixed(1)}"` +
+             ` height="${h.toFixed(1)}" rx="4" ry="4" fill="${css(SLOT[d.methods.indexOf(m)])}"` +
+             ` data-m="${m.label}" data-c="${c.label.replace(/\n/g,' ')}" data-v="${v}"></rect>`;
+      if (best[c.id].has(m.id))
+        svg += `<text class="vlab" x="${(x+bw/2).toFixed(1)}" y="${(y(v)-6).toFixed(1)}" text-anchor="middle">${v.toFixed(2)}</text>`;
+    });
+    const lines = c.label.split('\n');
+    lines.forEach((ln, li) => {
+      svg += `<text class="grouplab" x="${(PAD.l + gi*gw + gw/2).toFixed(1)}" y="${(y(0)+22+li*15).toFixed(1)}" text-anchor="middle">${ln}</text>`;
+    });
+  });
+  svg += `</svg>`;
+
+  const legend = d.methods.map((m, i) =>
+    `<span class="${m.data ? '' : 'nodata'}"><i style="background:${css(SLOT[i])}"></i>${m.label}` +
+    `${m.data ? '' : ' — no videos yet'}</span>`).join('');
+
+  const head = '<tr><th>Method</th>' + d.criteria.map(c =>
+    `<th>${c.label.replace(/\n/g,' ')}</th>`).join('') + '<th>n</th></tr>';
+  const body = d.methods.map(m => {
+    if (!m.data) return `<tr><td>${m.label}</td>` +
+      d.criteria.map(() => '<td class="nd">—</td>').join('') + '<td class="nd">—</td></tr>';
+    return `<tr><td>${m.label}</td>` + d.criteria.map(c => {
+      const v = d.values[m.id]?.[c.id];
+      return v == null ? '<td class="nd">—</td>' : `<td>${v.toFixed(2)}</td>`;
+    }).join('') + `<td>${d.n[m.id] ?? '—'}</td></tr>`;
+  }).join('');
+
+  app.innerHTML =
+    `<div class="card"><div class="legend">${legend}</div>${svg}</div>` +
+    `<p class="cap">Source: ${d.source}. Means over rated clips; higher is better.</p>` +
+    `<div class="tools"><button class="btn" id="toggle">Show table view</button></div>` +
+    `<div class="card" id="tablewrap" hidden><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+
+  $('#toggle').onclick = () => {
+    const t = $('#tablewrap');
+    t.hidden = !t.hidden;
+    $('#toggle').textContent = t.hidden ? 'Show table view' : 'Hide table view';
+  };
+
+  const tip = $('#tip');
+  app.querySelectorAll('.bar').forEach(b => {
+    const show = e => {
+      tip.textContent = `${b.dataset.m} · ${b.dataset.c}: ${(+b.dataset.v).toFixed(2)}`;
+      tip.style.opacity = 1;
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top = (e.clientY - 12) + 'px';
+    };
+    b.addEventListener('mousemove', show);
+    b.addEventListener('mouseenter', show);
+    b.addEventListener('mouseleave', () => { tip.style.opacity = 0; });
+  });
+}
+
+fetch('ratings.json')
+  .then(r => r.ok ? r.json() : Promise.reject(new Error('no ratings.json')))
+  .then(render)
+  .catch(() => render({methods: [], criteria: [], values: {}, n: {}, scale: [0, 5],
+                       axisLabel: '', source: ''}));
+</script>
+</body>
+</html>

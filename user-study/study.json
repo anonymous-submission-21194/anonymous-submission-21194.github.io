@@ -1,0 +1,62 @@
+{
+ "methods": [
+  {
+   "id": "base",
+   "label": "Wan2.1-T2V-1.3B",
+   "hasClips": true
+  },
+  {
+   "id": "physvid",
+   "label": "+ PhysVid-1.7B",
+   "hasClips": true
+  },
+  {
+   "id": "phygdpo",
+   "label": "+ PhyGDPO",
+   "hasClips": false
+  },
+  {
+   "id": "phyt2v",
+   "label": "+ PhyT2V",
+   "hasClips": true
+  },
+  {
+   "id": "opsd",
+   "label": "OPSD",
+   "hasClips": false
+  },
+  {
+   "id": "genrsi",
+   "label": "Gen-RSI (ours)",
+   "hasClips": true
+  }
+ ],
+ "criteria": [
+  {
+   "id": "visible",
+   "label": "Visible event",
+   "help": "The objects and the event named in the prompt are actually visible."
+  },
+  {
+   "id": "process",
+   "label": "Process",
+   "help": "The event plays out as a process, not a jump between states."
+  },
+  {
+   "id": "causality",
+   "label": "Causality",
+   "help": "Causes precede effects; contacts produce the right consequences."
+  },
+  {
+   "id": "continuity",
+   "label": "Continuity",
+   "help": "Objects persist and move continuously, without popping or swapping."
+  },
+  {
+   "id": "physical_plausibility",
+   "label": "Physical plausibility",
+   "help": "Motion, timing and final state obey physical law."
+  }
+ ],
+ "items": []
+}
